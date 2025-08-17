@@ -288,95 +288,105 @@ http {
                             
                         case 'macOS':
                             sh '''
-                                echo "=== Debug Configuration Nginx macOS ==="
-                                echo "AVAILABLE_PORT: ${AVAILABLE_PORT}"
+                                set -e  # Arrêter sur toute erreur
                                 
-                                # Vérifier si Nginx est installé
+                                echo "=== Configuration Nginx macOS ==="
+                                echo "Port disponible: ${AVAILABLE_PORT}"
+                                
+                                # Vérifier Nginx
                                 if ! command -v nginx >/dev/null 2>&1; then
-                                    echo "Erreur: Nginx n'est pas installé"
+                                    echo "ERREUR: Nginx non installé"
                                     exit 1
                                 fi
+                                echo "Nginx installé: $(which nginx)"
                                 
-                                # Détecter le chemin Nginx
+                                # Arrêter Nginx s'il tourne
+                                brew services stop nginx 2>/dev/null || true
+                                pkill nginx 2>/dev/null || true
+                                
+                                # Trouver le répertoire de config
                                 CONFIG_PATH=""
-                                if [ -d "/opt/homebrew/etc/nginx" ]; then
-                                    CONFIG_PATH="/opt/homebrew/etc/nginx"
-                                    echo "Chemin Homebrew Apple Silicon détecté: ${CONFIG_PATH}"
-                                elif [ -d "/usr/local/etc/nginx" ]; then
-                                    CONFIG_PATH="/usr/local/etc/nginx"
-                                    echo "Chemin Homebrew Intel détecté: ${CONFIG_PATH}"
-                                else
-                                    echo "Recherche des répertoires nginx possibles:"
-                                    find /opt /usr/local -name "nginx" -type d 2>/dev/null || true
-                                    echo "Erreur: Répertoire de configuration Nginx non trouvé"
-                                    exit 1
+                                for path in "/opt/homebrew/etc/nginx" "/usr/local/etc/nginx" "/etc/nginx"; do
+                                    if [ -d "$path" ]; then
+                                        CONFIG_PATH="$path"
+                                        echo "Répertoire config trouvé: $CONFIG_PATH"
+                                        break
+                                    fi
+                                done
+                                
+                                if [ -z "$CONFIG_PATH" ]; then
+                                    echo "ERREUR: Répertoire nginx non trouvé"
+                                    echo "Création du répertoire par défaut..."
+                                    mkdir -p ~/nginx-config
+                                    CONFIG_PATH="~/nginx-config"
                                 fi
                                 
-                                # Vérifier les permissions
-                                if [ ! -w "${CONFIG_PATH}" ]; then
-                                    echo "Erreur: Pas de permission d'écriture sur ${CONFIG_PATH}"
-                                    ls -la "${CONFIG_PATH}"
-                                    exit 1
-                                fi
-                                
-                                # Sauvegarder la config existante
-                                if [ -f "${CONFIG_PATH}/nginx.conf" ]; then
-                                    cp "${CONFIG_PATH}/nginx.conf" "${CONFIG_PATH}/nginx.conf.backup.${BUILD_TIMESTAMP}"
-                                    echo "Configuration existante sauvegardée"
-                                fi
-                                
-                                # Définir le chemin de l'application
+                                # Chemins pour l'application
                                 USER_HOME=$(echo ~)
                                 APP_PATH="${USER_HOME}/kanban"
-                                echo "APP_PATH défini: ${APP_PATH}"
+                                LOG_PATH="${USER_HOME}/kanban-logs"
                                 
-                                # Créer la nouvelle configuration
-                                echo "Création de la configuration Nginx..."
-                                cat > "${CONFIG_PATH}/nginx.conf" << EOF
+                                echo "APP_PATH: $APP_PATH"
+                                echo "LOG_PATH: $LOG_PATH"
+                                echo "CONFIG_PATH: $CONFIG_PATH"
+                                
+                                # S'assurer que les répertoires existent
+                                mkdir -p "$APP_PATH"
+                                mkdir -p "$LOG_PATH"
+                                
+                                # Créer une configuration simple
+                                echo "Création de nginx.conf..."
+                                cat > "${CONFIG_PATH}/nginx.conf" << 'EOF'
+worker_processes 1;
+error_log /tmp/nginx_error.log;
+pid /tmp/nginx.pid;
+
 events {
     worker_connections 1024;
 }
 
 http {
-    include mime.types;
+    include /opt/homebrew/etc/nginx/mime.types;
     default_type application/octet-stream;
     
-    access_log ${USER_HOME}/kanban-logs/access.log;
-    error_log ${USER_HOME}/kanban-logs/error.log;
+    access_log /tmp/nginx_access.log;
     
     server {
-        listen ${AVAILABLE_PORT};
+        listen REPLACE_PORT;
         server_name localhost;
-        root ${APP_PATH};
+        root REPLACE_ROOT;
         index index.html;
         
         location / {
-            try_files \\$uri \\$uri/ /index.html;
+            try_files $uri $uri/ /index.html;
         }
         
-        # Debug
-        location = /debug {
-            return 200 "Port: ${AVAILABLE_PORT}, Root: ${APP_PATH}";
+        location = /health {
+            return 200 "OK";
             add_header Content-Type text/plain;
         }
     }
 }
 EOF
                                 
-                                echo "Configuration Nginx créée"
-                                echo "Contenu du fichier de configuration:"
+                                # Remplacer les placeholders
+                                sed -i '' "s|REPLACE_PORT|${AVAILABLE_PORT}|g" "${CONFIG_PATH}/nginx.conf"
+                                sed -i '' "s|REPLACE_ROOT|${APP_PATH}|g" "${CONFIG_PATH}/nginx.conf"
+                                
+                                echo "Configuration créée avec succès"
+                                echo "Contenu de la configuration:"
                                 cat "${CONFIG_PATH}/nginx.conf"
                                 
-                                # Tester la configuration
-                                echo "Test de la configuration Nginx..."
-                                nginx -t -c "${CONFIG_PATH}/nginx.conf"
-                                
-                                if [ $? -eq 0 ]; then
-                                    echo "Configuration Nginx valide"
+                                # Test simple de la syntaxe
+                                echo "Test de la configuration..."
+                                if nginx -t -c "${CONFIG_PATH}/nginx.conf"; then
+                                    echo "Configuration valide"
                                 else
-                                    echo "Erreur dans la configuration Nginx"
+                                    echo "ERREUR: Configuration invalide"
                                     exit 1
                                 fi
+                                
+                                echo "Configuration Nginx terminée avec succès"
                             '''
                             break
                             
@@ -622,14 +632,34 @@ EOF
                             
                         default:
                             sh '''
-                                LATEST_BACKUP=$(ls -t ${BACKUP_PATH}/ 2>/dev/null | head -1)
-                                if [ ! -z "$LATEST_BACKUP" ]; then
-                                    if [ "${OS_TYPE}" = "Linux" ]; then
-                                        sudo cp -r ${BACKUP_PATH}/$LATEST_BACKUP/* ${APP_PATH}/
+                                echo "Tentative de restauration..."
+                                
+                                USER_HOME=$(echo ~)
+                                if [ "${OS_TYPE}" = "macOS" ]; then
+                                    BACKUP_PATH="${USER_HOME}/kanban-backup"
+                                    APP_PATH="${USER_HOME}/kanban"
+                                else
+                                    BACKUP_PATH="${BACKUP_PATH}"
+                                    APP_PATH="${APP_PATH}"
+                                fi
+                                
+                                echo "Recherche dans: ${BACKUP_PATH}"
+                                
+                                if [ -d "${BACKUP_PATH}" ]; then
+                                    LATEST_BACKUP=$(ls -t "${BACKUP_PATH}/" 2>/dev/null | grep "backup_" | head -1)
+                                    if [ ! -z "$LATEST_BACKUP" ]; then
+                                        echo "Restauration de: ${BACKUP_PATH}/${LATEST_BACKUP}"
+                                        if [ "${OS_TYPE}" = "Linux" ]; then
+                                            sudo cp -r "${BACKUP_PATH}/${LATEST_BACKUP}"/* "${APP_PATH}/"
+                                        else
+                                            cp -r "${BACKUP_PATH}/${LATEST_BACKUP}"/* "${APP_PATH}/"
+                                        fi
+                                        echo "Restauration effectuée"
                                     else
-                                        cp -r ${BACKUP_PATH}/$LATEST_BACKUP/* ${APP_PATH}/
+                                        echo "Aucune sauvegarde trouvée dans ${BACKUP_PATH}"
                                     fi
-                                    echo "Restauration effectuée"
+                                else
+                                    echo "Répertoire de sauvegarde ${BACKUP_PATH} non trouvé"
                                 fi
                             '''
                             break
