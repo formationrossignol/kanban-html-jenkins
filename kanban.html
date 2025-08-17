@@ -1,0 +1,2415 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KanbanPro - Gestion de projets professionnelle</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+            --accent-gradient: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            --success-gradient: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            --warning-gradient: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            --danger-gradient: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            --surface: rgba(255, 255, 255, 0.98);
+            --surface-hover: rgba(255, 255, 255, 1);
+            --text-primary: #2c3e50;
+            --text-secondary: #7f8c8d;
+            --border-light: rgba(52, 73, 94, 0.1);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.16);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-primary);
+        }
+
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border-light);
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .workspace-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .workspace-dropdown {
+            background: white;
+            border: 2px solid var(--border-light);
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            min-width: 200px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .workspace-dropdown:hover {
+            border-color: #3498db;
+        }
+
+        .workspace-add-btn {
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .workspace-add-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-btn {
+            background: white;
+            border: 2px solid var(--border-light);
+            color: var(--text-primary);
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .header-btn:hover {
+            border-color: #3498db;
+            color: #3498db;
+        }
+
+        .logout-btn {
+            background: var(--danger-gradient);
+            color: white;
+            border: none;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .board-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .swimlane-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .swimlane-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .swimlane-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .swimlane-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .swimlane {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+        }
+
+        .swimlane-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .swimlane-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .swimlane-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            background: white;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .btn-small:hover {
+            border-color: #3498db;
+            color: #3498db;
+        }
+
+        .board {
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            padding: 8px 0;
+            min-height: 500px;
+        }
+
+        .board::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .board::-webkit-scrollbar-track {
+            background: var(--border-light);
+            border-radius: 4px;
+        }
+
+        .board::-webkit-scrollbar-thumb {
+            background: #bdc3c7;
+            border-radius: 4px;
+        }
+
+        .column {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 320px;
+            max-width: 350px;
+            flex-shrink: 0;
+            border: 1px solid var(--border-light);
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .column-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-count {
+            background: var(--accent-gradient);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .add-card-btn {
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .add-card-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cards-container {
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .card.dragging {
+            opacity: 0.7;
+            transform: rotate(2deg) scale(1.02);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-priority-high { border-left: 4px solid #e74c3c; }
+        .card-priority-medium { border-left: 4px solid #f39c12; }
+        .card-priority-low { border-left: 4px solid #27ae60; }
+
+        .card-title {
+            font-weight: 700;
+            font-size: 16px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .card-title:hover {
+            color: #3498db;
+        }
+
+        .card-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .card-labels {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .card-label {
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-checklist {
+            margin-bottom: 12px;
+        }
+
+        .checklist-progress {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .checklist-bar {
+            height: 6px;
+            background: #ecf0f1;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .checklist-progress-bar {
+            height: 100%;
+            background: var(--success-gradient);
+            transition: width 0.3s ease;
+            border-radius: 3px;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .card-author {
+            background: #ecf0f1;
+            color: var(--text-secondary);
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .card-comments {
+            color: var(--text-secondary);
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .card-actions {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .card:hover .card-actions {
+            opacity: 1;
+        }
+
+        .card-action-btn {
+            background: white;
+            border: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .card-action-btn:hover {
+            border-color: #3498db;
+            color: #3498db;
+        }
+
+        .card-action-btn.delete:hover {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        .drop-zone {
+            min-height: 80px;
+            border: 2px dashed var(--border-light);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #3498db;
+            background: rgba(52, 152, 219, 0.05);
+            color: #3498db;
+        }
+
+        .activity-panel {
+            width: 380px;
+            background: var(--surface);
+            border-left: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-md);
+        }
+
+        .activity-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .activity-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .members-section {
+            margin-bottom: 32px;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-light);
+        }
+
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .member-info {
+            flex: 1;
+        }
+
+        .member-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .member-role {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .member-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #27ae60;
+        }
+
+        .member-status.offline {
+            background: #95a5a6;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            background: var(--accent-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .activity-details {
+            flex: 1;
+        }
+
+        .activity-text {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .activity-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .color-picker {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .color-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+
+        .color-option.selected {
+            border-color: var(--text-primary);
+            transform: scale(1.15);
+        }
+
+        .color-blue { background: #3498db; }
+        .color-green { background: #27ae60; }
+        .color-orange { background: #f39c12; }
+        .color-red { background: #e74c3c; }
+        .color-purple { background: #9b59b6; }
+        .color-teal { background: #1abc9c; }
+
+        .labels-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .label-option {
+            padding: 8px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .label-option:hover {
+            transform: scale(1.05);
+        }
+
+        .label-option.selected {
+            border-color: white;
+        }
+
+        .checklist-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .checklist-items {
+            margin-top: 16px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid var(--border-light);
+        }
+
+        .checklist-item input[type="checkbox"] {
+            margin-top: 2px;
+        }
+
+        .checklist-item input[type="text"] {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 4px;
+            font-size: 14px;
+        }
+
+        .checklist-item input[type="text"]:focus {
+            outline: none;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .checklist-item button {
+            background: var(--danger-gradient);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .add-checklist-item {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .add-checklist-item input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .comments-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .comments-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+
+        .comment-item {
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        .comment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .comment-author {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+
+        .comment-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .comment-text {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-primary);
+        }
+
+        .add-comment {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .add-comment textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 2px solid var(--border-light);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--text-secondary);
+            border: 2px solid var(--border-light);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-secondary);
+        }
+
+        .config-tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 24px;
+            background: #f8f9fa;
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .config-tab {
+            flex: 1;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .config-tab.active {
+            background: white;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .config-content {
+            display: none;
+        }
+
+        .config-content.active {
+            display: block;
+        }
+
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: white;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-light);
+        }
+
+        .config-item-info {
+            flex: 1;
+        }
+
+        .config-item-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .config-item-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .config-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .add-form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .add-form input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid var(--border-light);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .add-form input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .add-form button {
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                flex-direction: column;
+            }
+            
+            .activity-panel {
+                width: 100%;
+                height: 50vh;
+            }
+
+            .board {
+                flex-direction: column;
+            }
+            
+            .column {
+                width: 100%;
+                max-width: none;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">🚀 KanbanPro</div>
+            <div class="workspace-controls">
+                <select class="workspace-dropdown" id="workspaceSelect" onchange="switchWorkspace()">
+                    <option value="projet-web">🌐 Projet Web</option>
+                    <option value="marketing">📈 Marketing</option>
+                </select>
+                <button class="workspace-add-btn" onclick="createWorkspace()" title="Nouveau workspace">➕</button>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="header-btn" onclick="openAdminPanel()" title="Administration">⚙️</button>
+            <button class="header-btn" onclick="toggleActivityPanel()" title="Activité">📊</button>
+            <button class="header-btn logout-btn" onclick="logout()" title="Déconnexion">🚪</button>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="board-container">
+            <div class="swimlane-container" id="swimlaneContainer">
+                <!-- Swimlanes will be rendered here -->
+            </div>
+        </div>
+
+        <div class="activity-panel" id="activityPanel">
+            <div class="activity-header">
+                <h3>📊 Activité du Workspace</h3>
+                <p id="workspaceActivityTitle">Activités récentes</p>
+            </div>
+            <div class="activity-content">
+                <div class="members-section">
+                    <div class="section-title">Membres de l'équipe</div>
+                    <div id="membersList"></div>
+                </div>
+                
+                <div>
+                    <div class="section-title">Activité récente</div>
+                    <div id="activitiesList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card Modal -->
+    <div id="cardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="cardModalTitle">📝 Nouvelle tâche</h3>
+                <button class="close-btn" onclick="closeModal('cardModal')">&times;</button>
+            </div>
+            <form id="cardForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="cardTitle">Titre de la tâche *</label>
+                        <input type="text" class="form-input" id="cardTitle" required placeholder="Ex: Développer la page d'accueil">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="cardAuthor">Assigné à</label>
+                        <select class="form-input" id="cardAuthor">
+                            <option value="">Sélectionner un membre</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group full-width">
+                    <label class="form-label" for="cardDescription">Description</label>
+                    <textarea class="form-input form-textarea" id="cardDescription" placeholder="Décrivez votre tâche en détail..."></textarea>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="cardPriority">Priorité</label>
+                        <select class="form-input" id="cardPriority">
+                            <option value="low">🟢 Basse</option>
+                            <option value="medium">🟡 Moyenne</option>
+                            <option value="high">🔴 Haute</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="cardDueDate">Date d'échéance</label>
+                        <input type="date" class="form-input" id="cardDueDate">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Couleur de la carte</label>
+                    <div class="color-picker">
+                        <div class="color-option color-blue selected" data-color="blue"></div>
+                        <div class="color-option color-green" data-color="green"></div>
+                        <div class="color-option color-orange" data-color="orange"></div>
+                        <div class="color-option color-red" data-color="red"></div>
+                        <div class="color-option color-purple" data-color="purple"></div>
+                        <div class="color-option color-teal" data-color="teal"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Labels</label>
+                    <div class="labels-grid" id="availableLabels">
+                        <!-- Labels will be populated here -->
+                    </div>
+                </div>
+
+                <div class="checklist-section">
+                    <div class="section-title">Checklist</div>
+                    <div class="checklist-items" id="checklistItems">
+                        <!-- Checklist items will be added here -->
+                    </div>
+                    <div class="add-checklist-item">
+                        <input type="text" id="newChecklistItem" placeholder="Nouvelle tâche...">
+                        <button type="button" class="btn btn-secondary" onclick="addChecklistItem()">Ajouter</button>
+                    </div>
+                </div>
+
+                <div class="comments-section" id="commentsSection" style="display: none;">
+                    <div class="section-title">Commentaires</div>
+                    <div class="comments-list" id="commentsList">
+                        <!-- Comments will be listed here -->
+                    </div>
+                    <div class="add-comment">
+                        <textarea class="form-input" id="newComment" placeholder="Ajouter un commentaire..."></textarea>
+                        <button type="button" class="btn btn-secondary" onclick="addComment()">💬 Commenter</button>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('cardModal')">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="cardSubmitBtn">Créer la tâche</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="adminModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">⚙️ Administration</h3>
+                <button class="close-btn" onclick="closeModal('adminModal')">&times;</button>
+            </div>
+            
+            <div class="config-tabs">
+                <button class="config-tab active" onclick="switchAdminTab('workspaces')">Workspaces</button>
+                <button class="config-tab" onclick="switchAdminTab('users')">Utilisateurs</button>
+                <button class="config-tab" onclick="switchAdminTab('labels')">Labels</button>
+                <button class="config-tab" onclick="switchAdminTab('checklists')">Checklists</button>
+            </div>
+
+            <!-- Workspaces Tab -->
+            <div id="workspaces-content" class="config-content active">
+                <div class="add-form" style="margin-bottom: 20px;">
+                    <input type="text" id="newWorkspaceName" placeholder="Nom du workspace">
+                    <button onclick="addWorkspace()">Créer</button>
+                </div>
+                <div id="workspacesList"></div>
+            </div>
+
+            <!-- Users Tab -->
+            <div id="users-content" class="config-content">
+                <div class="add-form" style="margin-bottom: 20px;">
+                    <input type="text" id="newUserName" placeholder="Nom de l'utilisateur">
+                    <input type="email" id="newUserEmail" placeholder="Email">
+                    <button onclick="addUser()">Créer</button>
+                </div>
+                <div id="usersList"></div>
+            </div>
+
+            <!-- Labels Tab -->
+            <div id="labels-content" class="config-content">
+                <div class="form-grid" style="margin-bottom: 20px;">
+                    <input type="text" id="newLabelName" placeholder="Nom du label">
+                    <select id="newLabelColor">
+                        <option value="blue">🔵 Bleu</option>
+                        <option value="green">🟢 Vert</option>
+                        <option value="orange">🟠 Orange</option>
+                        <option value="red">🔴 Rouge</option>
+                        <option value="purple">🟣 Violet</option>
+                        <option value="teal">🟦 Turquoise</option>
+                    </select>
+                    <button onclick="addLabel()" style="grid-column: 1 / -1;">Créer Label</button>
+                </div>
+                <div id="labelsList"></div>
+            </div>
+
+            <!-- Checklists Tab -->
+            <div id="checklists-content" class="config-content">
+                <div class="add-form" style="margin-bottom: 20px;">
+                    <input type="text" id="newChecklistName" placeholder="Nom de la checklist template">
+                    <button onclick="addChecklistTemplate()">Créer</button>
+                </div>
+                <div id="checklistTemplatesList"></div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('adminModal')">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+// Global Application State
+let currentWorkspace = 'projet-web';
+let currentUser = { id: 1, name: 'Utilisateur Admin', email: 'admin@kanban.pro' };
+let editingCardId = null;
+let selectedLabels = [];
+let checklistItems = [];
+let selectedColor = 'blue';
+
+// Data Storage - Données organisées par workspace
+const appData = {
+    workspaces: {
+        'projet-web': { 
+            name: '🌐 Projet Web',
+            swimlanes: [
+                { id: 'frontend', name: 'Frontend', emoji: '🎨' },
+                { id: 'backend', name: 'Backend', emoji: '⚙️' }
+            ],
+            columns: [
+                { id: 'todo', name: 'À faire', emoji: '📋' },
+                { id: 'inprogress', name: 'En cours', emoji: '⚡' },
+                { id: 'review', name: 'En révision', emoji: '👀' },
+                { id: 'done', name: 'Terminé', emoji: '✅' }
+            ]
+        },
+        'marketing': { 
+            name: '📈 Marketing',
+            swimlanes: [
+                { id: 'campaigns', name: 'Campagnes', emoji: '📢' }
+            ],
+            columns: [
+                { id: 'planning', name: 'Planning', emoji: '📅' },
+                { id: 'creation', name: 'Création', emoji: '🎨' },
+                { id: 'review', name: 'Révision', emoji: '👀' },
+                { id: 'published', name: 'Publié', emoji: '🚀' }
+            ]
+        }
+    },
+    
+    // Utilisateurs par workspace
+    users: {
+        'projet-web': [
+            { id: 1, name: 'Marie Dupont', email: 'marie@kanban.pro', role: 'Lead Developer', status: 'online' },
+            { id: 2, name: 'Jean Martin', email: 'jean@kanban.pro', role: 'Frontend Dev', status: 'online' },
+            { id: 3, name: 'Sophie Bernard', email: 'sophie@kanban.pro', role: 'Designer', status: 'offline' }
+        ],
+        'marketing': [
+            { id: 4, name: 'Pierre Dubois', email: 'pierre@kanban.pro', role: 'Marketing Manager', status: 'online' },
+            { id: 5, name: 'Julie Moreau', email: 'julie@kanban.pro', role: 'Content Creator', status: 'online' }
+        ]
+    },
+    
+    // Labels par workspace
+    labels: {
+        'projet-web': [
+            { id: 'bug', name: 'Bug', color: 'red' },
+            { id: 'feature', name: 'Feature', color: 'blue' },
+            { id: 'urgent', name: 'Urgent', color: 'orange' },
+            { id: 'documentation', name: 'Documentation', color: 'green' }
+        ],
+        'marketing': [
+            { id: 'social', name: 'Réseaux sociaux', color: 'purple' },
+            { id: 'email', name: 'Email', color: 'teal' },
+            { id: 'urgent', name: 'Urgent', color: 'orange' }
+        ]
+    },
+    
+    // Templates de checklist par workspace
+    checklistTemplates: {
+        'projet-web': [
+            {
+                id: 'dev-checklist',
+                name: 'Checklist Développement',
+                items: ['Code review', 'Tests unitaires', 'Documentation', 'Déploiement']
+            },
+            {
+                id: 'bug-checklist',
+                name: 'Checklist Bug Fix',
+                items: ['Reproduction du bug', 'Analyse des causes', 'Fix et test', 'Validation']
+            }
+        ],
+        'marketing': [
+            {
+                id: 'campaign-checklist',
+                name: 'Checklist Campagne',
+                items: ['Brief créatif', 'Validation client', 'Planning média', 'Suivi performance']
+            },
+            {
+                id: 'content-checklist',
+                name: 'Checklist Contenu',
+                items: ['Recherche mots-clés', 'Rédaction', 'Relecture', 'Publication']
+            }
+        ]
+    },
+    
+    // Cartes par workspace
+    cards: {
+        'projet-web': {
+            'frontend': {
+                'todo': [
+                    {
+                        id: 1,
+                        title: 'Refonte du design système',
+                        description: 'Mise à jour complète du design système avec les nouvelles couleurs et typographies',
+                        author: 'Marie Dupont',
+                        priority: 'high',
+                        color: 'purple',
+                        labels: ['urgent', 'feature'],
+                        dueDate: '2025-08-15',
+                        checklist: [
+                            { id: 1, text: 'Audit de l\'existant', completed: true },
+                            { id: 2, text: 'Nouvelles couleurs', completed: false },
+                            { id: 3, text: 'Composants UI', completed: false }
+                        ],
+                        comments: [
+                            { id: 1, author: 'Marie Dupont', text: 'Démarrage du projet avec analyse des besoins', timestamp: new Date().toISOString() }
+                        ],
+                        created: new Date().toISOString()
+                    }
+                ],
+                'inprogress': [
+                    {
+                        id: 2,
+                        title: 'Optimisation des performances',
+                        description: 'Amélioration des temps de chargement et optimisation des bundles JavaScript',
+                        author: 'Jean Martin',
+                        priority: 'medium',
+                        color: 'blue',
+                        labels: ['feature'],
+                        dueDate: '2025-08-20',
+                        checklist: [
+                            { id: 4, text: 'Analyse des bundles', completed: true },
+                            { id: 5, text: 'Code splitting', completed: true },
+                            { id: 6, text: 'Lazy loading', completed: false }
+                        ],
+                        comments: [],
+                        created: new Date().toISOString()
+                    }
+                ],
+                'review': [],
+                'done': []
+            },
+            'backend': {
+                'todo': [
+                    {
+                        id: 3,
+                        title: 'API de gestion des utilisateurs',
+                        description: 'Développement de l\'API REST pour la gestion des comptes utilisateurs',
+                        author: 'Sophie Bernard',
+                        priority: 'high',
+                        color: 'green',
+                        labels: ['feature', 'urgent'],
+                        dueDate: '2025-08-18',
+                        checklist: [],
+                        comments: [],
+                        created: new Date().toISOString()
+                    }
+                ],
+                'inprogress': [],
+                'review': [],
+                'done': []
+            }
+        },
+        'marketing': {
+            'campaigns': {
+                'planning': [
+                    {
+                        id: 4,
+                        title: 'Campagne été 2025',
+                        description: 'Planification de la campagne marketing pour l\'été 2025',
+                        author: 'Pierre Dubois',
+                        priority: 'medium',
+                        color: 'orange',
+                        labels: ['social'],
+                        dueDate: '2025-08-25',
+                        checklist: [
+                            { id: 7, text: 'Définir les objectifs', completed: true },
+                            { id: 8, text: 'Budget prévisionnel', completed: false }
+                        ],
+                        comments: [],
+                        created: new Date().toISOString()
+                    }
+                ],
+                'creation': [],
+                'review': [],
+                'published': []
+            }
+        }
+    },
+    
+    // Activités par workspace
+    activities: {
+        'projet-web': [],
+        'marketing': []
+    }
+};
+
+// Initialization
+document.addEventListener('DOMContentLoaded', function() {
+    initializeApp();
+});
+
+function initializeApp() {
+    setupEventListeners();
+    renderSwimlanes();
+    renderMembers();
+    renderActivities();
+    populateUserSelect();
+    updateActivityHeader();
+    logActivity('system', 'Application initialisée');
+}
+
+function setupEventListeners() {
+    // Color picker
+    document.querySelectorAll('.color-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedColor = this.dataset.color;
+        });
+    });
+
+    // Card form
+    document.getElementById('cardForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (editingCardId) {
+            updateCard();
+        } else {
+            createCard();
+        }
+    });
+
+    // Modal close on outside click
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal(this.id);
+            }
+        });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.modal').forEach(modal => {
+                if (modal.style.display === 'block') {
+                    closeModal(modal.id);
+                }
+            });
+        }
+    });
+}
+
+// Workspace Management
+function switchWorkspace() {
+    const select = document.getElementById('workspaceSelect');
+    currentWorkspace = select.value;
+    renderSwimlanes();
+    renderMembers();
+    renderActivities();
+    updateActivityHeader();
+    logActivity('workspace', `Workspace changé: ${appData.workspaces[currentWorkspace].name}`);
+}
+
+function updateActivityHeader() {
+    const workspaceName = appData.workspaces[currentWorkspace]?.name || 'Workspace';
+    document.getElementById('workspaceActivityTitle').textContent = `Activités - ${workspaceName}`;
+}
+
+function createWorkspace() {
+    const name = prompt('Nom du nouveau workspace:');
+    if (name && name.trim()) {
+        const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        appData.workspaces[id] = {
+            name: `🏢 ${name}`,
+            swimlanes: [{ id: 'general', name: 'Général', emoji: '📋' }],
+            columns: [
+                { id: 'todo', name: 'À faire', emoji: '📋' },
+                { id: 'inprogress', name: 'En cours', emoji: '⚡' },
+                { id: 'review', name: 'En révision', emoji: '👀' },
+                { id: 'done', name: 'Terminé', emoji: '✅' }
+            ]
+        };
+        
+        // Initialiser les données pour ce workspace
+        appData.users[id] = [];
+        appData.labels[id] = [];
+        appData.checklistTemplates[id] = [];
+        appData.cards[id] = { 'general': { 'todo': [], 'inprogress': [], 'review': [], 'done': [] } };
+        appData.activities[id] = [];
+        
+        updateWorkspaceSelect();
+        currentWorkspace = id;
+        document.getElementById('workspaceSelect').value = id;
+        renderSwimlanes();
+        renderMembers();
+        renderActivities();
+        updateActivityHeader();
+        logActivity('system', `Workspace créé: ${name}`);
+    }
+}
+
+function updateWorkspaceSelect() {
+    const select = document.getElementById('workspaceSelect');
+    select.innerHTML = Object.keys(appData.workspaces).map(id => 
+        `<option value="${id}" ${id === currentWorkspace ? 'selected' : ''}>${appData.workspaces[id].name}</option>`
+    ).join('');
+}
+
+// Swimlanes Rendering
+function renderSwimlanes() {
+    const container = document.getElementById('swimlaneContainer');
+    const workspace = appData.workspaces[currentWorkspace];
+    
+    if (!workspace || !workspace.swimlanes.length) {
+        container.innerHTML = '<div style="text-align: center; color: white; padding: 60px;"><h3>Aucune swimlane configurée</h3><p>Utilisez le panneau d\'administration pour configurer vos swimlanes.</p></div>';
+        return;
+    }
+
+    container.innerHTML = workspace.swimlanes.map(swimlane => `
+        <div class="swimlane">
+            <div class="swimlane-header">
+                <div class="swimlane-title">${swimlane.emoji} ${swimlane.name}</div>
+                <div class="swimlane-actions">
+                    <button class="btn-small" onclick="editSwimlane('${swimlane.id}')">✏️ Éditer</button>
+                    <button class="btn-small" onclick="deleteSwimlane('${swimlane.id}')">🗑️ Supprimer</button>
+                </div>
+            </div>
+            <div class="board">
+                ${workspace.columns.map(column => createColumnHTML(column, swimlane.id)).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+function createColumnHTML(column, swimlaneId) {
+    const cards = getCards(swimlaneId, column.id);
+    const cardsHTML = cards.map(card => createCardHTML(card)).join('');
+    
+    return `
+        <div class="column" data-column="${column.id}" data-swimlane="${swimlaneId}">
+            <div class="column-header">
+                <div class="column-title">
+                    ${column.emoji} ${column.name}
+                    <span class="card-count">${cards.length}</span>
+                </div>
+                <button class="add-card-btn" onclick="openCardModal('${column.id}', '${swimlaneId}')">
+                    ➕ Nouvelle tâche
+                </button>
+            </div>
+            <div class="cards-container" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                ${cardsHTML}
+                ${cards.length === 0 ? '<div class="drop-zone">Glissez vos cartes ici</div>' : ''}
+            </div>
+        </div>
+    `;
+}
+
+function createCardHTML(card) {
+    const labelsHTML = (card.labels || []).map(labelId => {
+        const label = getLabelById(labelId);
+        return label ? `<span class="card-label" style="background: ${getLabelColor(label.color)}">${label.name}</span>` : '';
+    }).join('');
+
+    const checklistProgress = getChecklistProgress(card.checklist || []);
+    const checklistHTML = card.checklist && card.checklist.length > 0 ? 
+        `<div class="card-checklist">
+            <div class="checklist-progress">${checklistProgress.completed}/${checklistProgress.total} tâches complétées</div>
+            <div class="checklist-bar">
+                <div class="checklist-progress-bar" style="width: ${checklistProgress.percentage}%"></div>
+            </div>
+        </div>` : '';
+
+    const commentsCount = (card.comments || []).length;
+    const commentsHTML = commentsCount > 0 ? 
+        `<div class="card-comments">💬 ${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}</div>` : '';
+
+    return `
+        <div class="card card-priority-${card.priority}" draggable="true" data-card-id="${card.id}" 
+             ondragstart="handleDragStart(event)" ondragend="handleDragEnd(event)">
+            <div class="card-actions">
+                <button class="card-action-btn" onclick="editCard(${card.id})" title="Éditer">✏️</button>
+                <button class="card-action-btn delete" onclick="deleteCard(${card.id})" title="Supprimer">🗑️</button>
+            </div>
+            ${labelsHTML ? `<div class="card-labels">${labelsHTML}</div>` : ''}
+            <div class="card-title" onclick="editCard(${card.id})">${card.title}</div>
+            <div class="card-description">${card.description}</div>
+            ${checklistHTML}
+            <div class="card-meta">
+                <span class="card-author">${card.author || 'Non assigné'}</span>
+                ${commentsHTML}
+            </div>
+        </div>
+    `;
+}
+
+// Card Management
+function openCardModal(columnId, swimlaneId) {
+    editingCardId = null;
+    selectedLabels = [];
+    checklistItems = [];
+    selectedColor = 'blue';
+    
+    document.getElementById('cardModalTitle').textContent = '📝 Nouvelle tâche';
+    document.getElementById('cardSubmitBtn').textContent = 'Créer la tâche';
+    document.getElementById('commentsSection').style.display = 'none';
+    
+    // Store current swimlane and column for new cards
+    document.querySelector('#cardModal').dataset.column = columnId;
+    document.querySelector('#cardModal').dataset.swimlane = swimlaneId;
+    
+    populateAvailableLabels();
+    renderChecklistItems();
+    resetColorPicker();
+    
+    document.getElementById('cardModal').style.display = 'block';
+    document.getElementById('cardTitle').focus();
+}
+
+function editCard(cardId) {
+    const card = findCardById(cardId);
+    if (!card) return;
+
+    editingCardId = cardId;
+    selectedLabels = [...(card.labels || [])];
+    checklistItems = [...(card.checklist || [])];
+    selectedColor = card.color || 'blue';
+
+    document.getElementById('cardModalTitle').textContent = '✏️ Éditer la tâche';
+    document.getElementById('cardSubmitBtn').textContent = 'Mettre à jour';
+    document.getElementById('commentsSection').style.display = 'block';
+
+    // Fill form fields
+    document.getElementById('cardTitle').value = card.title;
+    document.getElementById('cardDescription').value = card.description || '';
+    document.getElementById('cardAuthor').value = card.author || '';
+    document.getElementById('cardPriority').value = card.priority || 'medium';
+    document.getElementById('cardDueDate').value = card.dueDate || '';
+
+    // Set color
+    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+    document.querySelector(`[data-color="${selectedColor}"]`).classList.add('selected');
+
+    populateAvailableLabels();
+    renderChecklistItems();
+    renderComments(card);
+
+    document.getElementById('cardModal').style.display = 'block';
+}
+
+function createCard() {
+    const title = document.getElementById('cardTitle').value.trim();
+    if (!title) return;
+
+    const newCard = {
+        id: Date.now(),
+        title: title,
+        description: document.getElementById('cardDescription').value.trim(),
+        author: document.getElementById('cardAuthor').value,
+        priority: document.getElementById('cardPriority').value,
+        dueDate: document.getElementById('cardDueDate').value,
+        color: selectedColor,
+        labels: [...selectedLabels],
+        checklist: [...checklistItems],
+        comments: [],
+        created: new Date().toISOString()
+    };
+
+    const swimlaneId = document.querySelector('#cardModal').dataset.swimlane;
+    const columnId = document.querySelector('#cardModal').dataset.column;
+    
+    ensureCardStructure(swimlaneId, columnId);
+    appData.cards[currentWorkspace][swimlaneId][columnId].push(newCard);
+    
+    logActivity('create', `Carte créée: "${title}"`);
+    renderSwimlanes();
+    closeModal('cardModal');
+}
+
+function updateCard() {
+    const card = findCardById(editingCardId);
+    if (!card) return;
+
+    const title = document.getElementById('cardTitle').value.trim();
+    if (!title) return;
+
+    card.title = title;
+    card.description = document.getElementById('cardDescription').value.trim();
+    card.author = document.getElementById('cardAuthor').value;
+    card.priority = document.getElementById('cardPriority').value;
+    card.dueDate = document.getElementById('cardDueDate').value;
+    card.color = selectedColor;
+    card.labels = [...selectedLabels];
+    card.checklist = [...checklistItems];
+
+    logActivity('update', `Carte modifiée: "${title}"`);
+    renderSwimlanes();
+    closeModal('cardModal');
+}
+
+function deleteCard(cardId) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette carte ?')) return;
+
+    let cardTitle = '';
+    Object.keys(appData.cards[currentWorkspace] || {}).forEach(swimlaneId => {
+        Object.keys(appData.cards[currentWorkspace][swimlaneId] || {}).forEach(columnId => {
+            const cardIndex = appData.cards[currentWorkspace][swimlaneId][columnId].findIndex(card => card.id === cardId);
+            if (cardIndex !== -1) {
+                cardTitle = appData.cards[currentWorkspace][swimlaneId][columnId][cardIndex].title;
+                appData.cards[currentWorkspace][swimlaneId][columnId].splice(cardIndex, 1);
+            }
+        });
+    });
+
+    if (cardTitle) {
+        logActivity('delete', `Carte supprimée: "${cardTitle}"`);
+        renderSwimlanes();
+    }
+}
+
+// Drag and Drop
+function handleDragStart(e) {
+    e.dataTransfer.setData('text/plain', e.target.dataset.cardId);
+    e.target.classList.add('dragging');
+}
+
+function handleDragEnd(e) {
+    e.target.classList.remove('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    const dropZone = e.currentTarget.querySelector('.drop-zone');
+    if (dropZone) dropZone.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+        const dropZone = e.currentTarget.querySelector('.drop-zone');
+        if (dropZone) dropZone.classList.remove('drag-over');
+    }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const cardId = parseInt(e.dataTransfer.getData('text/plain'));
+    const targetColumn = e.currentTarget.closest('.column');
+    const targetColumnId = targetColumn.dataset.column;
+    const targetSwimlaneId = targetColumn.dataset.swimlane;
+    
+    const dropZone = e.currentTarget.querySelector('.drop-zone');
+    if (dropZone) dropZone.classList.remove('drag-over');
+
+    moveCard(cardId, targetSwimlaneId, targetColumnId);
+}
+
+function moveCard(cardId, targetSwimlaneId, targetColumnId) {
+    let cardToMove = null;
+    let sourceInfo = null;
+
+    // Find and remove card from source
+    Object.keys(appData.cards[currentWorkspace] || {}).forEach(swimlaneId => {
+        Object.keys(appData.cards[currentWorkspace][swimlaneId] || {}).forEach(columnId => {
+            const cardIndex = appData.cards[currentWorkspace][swimlaneId][columnId].findIndex(card => card.id === cardId);
+            if (cardIndex !== -1) {
+                cardToMove = appData.cards[currentWorkspace][swimlaneId][columnId][cardIndex];
+                appData.cards[currentWorkspace][swimlaneId][columnId].splice(cardIndex, 1);
+                sourceInfo = { swimlaneId, columnId };
+            }
+        });
+    });
+
+    if (cardToMove && sourceInfo) {
+        ensureCardStructure(targetSwimlaneId, targetColumnId);
+        appData.cards[currentWorkspace][targetSwimlaneId][targetColumnId].push(cardToMove);
+        
+        const sourceName = getSwimlaneById(sourceInfo.swimlaneId)?.name + ' > ' + getColumnById(sourceInfo.columnId)?.name;
+        const targetName = getSwimlaneById(targetSwimlaneId)?.name + ' > ' + getColumnById(targetColumnId)?.name;
+        
+        logActivity('move', `"${cardToMove.title}" déplacée de ${sourceName} vers ${targetName}`);
+        renderSwimlanes();
+    }
+}
+
+// Checklist Management
+function addChecklistItem() {
+    const text = document.getElementById('newChecklistItem').value.trim();
+    if (!text) return;
+
+    checklistItems.push({
+        id: Date.now(),
+        text: text,
+        completed: false
+    });
+
+    document.getElementById('newChecklistItem').value = '';
+    renderChecklistItems();
+}
+
+function renderChecklistItems() {
+    const container = document.getElementById('checklistItems');
+    container.innerHTML = checklistItems.map(item => 
+        `<div class="checklist-item">
+            <input type="checkbox" ${item.completed ? 'checked' : ''} onchange="toggleChecklistItem(${item.id})">
+            <input type="text" value="${item.text}" onchange="updateChecklistItem(${item.id}, this.value)">
+            <button onclick="removeChecklistItem(${item.id})">🗑️</button>
+        </div>`
+    ).join('');
+}
+
+function toggleChecklistItem(itemId) {
+    const item = checklistItems.find(i => i.id === itemId);
+    if (item) item.completed = !item.completed;
+}
+
+function updateChecklistItem(itemId, newText) {
+    const item = checklistItems.find(i => i.id === itemId);
+    if (item) item.text = newText;
+}
+
+function removeChecklistItem(itemId) {
+    checklistItems = checklistItems.filter(i => i.id !== itemId);
+    renderChecklistItems();
+}
+
+// Comments Management
+function addComment() {
+    const text = document.getElementById('newComment').value.trim();
+    if (!text || !editingCardId) return;
+
+    const card = findCardById(editingCardId);
+    if (!card) return;
+
+    const comment = {
+        id: Date.now(),
+        author: currentUser.name,
+        text: text,
+        timestamp: new Date().toISOString()
+    };
+
+    if (!card.comments) card.comments = [];
+    card.comments.push(comment);
+    document.getElementById('newComment').value = '';
+    renderComments(card);
+    
+    logActivity('comment', `Commentaire ajouté sur "${card.title}"`);
+}
+
+function renderComments(card) {
+    const container = document.getElementById('commentsList');
+    const comments = card.comments || [];
+    
+    container.innerHTML = comments.map(comment => {
+        const date = new Date(comment.timestamp);
+        const timeStr = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = date.toLocaleDateString('fr-FR');
+        
+        return `
+            <div class="comment-item">
+                <div class="comment-header">
+                    <span class="comment-author">${comment.author}</span>
+                    <span class="comment-time">${dateStr} à ${timeStr}</span>
+                </div>
+                <div class="comment-text">${comment.text}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Labels Management
+function populateAvailableLabels() {
+    const container = document.getElementById('availableLabels');
+    const workspaceLabels = appData.labels[currentWorkspace] || [];
+    
+    container.innerHTML = workspaceLabels.map(label => 
+        `<div class="label-option ${selectedLabels.includes(label.id) ? 'selected' : ''}" 
+              data-label="${label.id}" 
+              style="background: ${getLabelColor(label.color)}"
+              onclick="toggleLabel('${label.id}')">${label.name}</div>`
+    ).join('');
+}
+
+function toggleLabel(labelId) {
+    const index = selectedLabels.indexOf(labelId);
+    if (index > -1) {
+        selectedLabels.splice(index, 1);
+    } else {
+        selectedLabels.push(labelId);
+    }
+    populateAvailableLabels();
+}
+
+function getLabelById(labelId) {
+    const workspaceLabels = appData.labels[currentWorkspace] || [];
+    return workspaceLabels.find(label => label.id === labelId);
+}
+
+function getLabelColor(colorName) {
+    const colors = {
+        blue: '#3498db',
+        green: '#27ae60',
+        orange: '#f39c12',
+        red: '#e74c3c',
+        purple: '#9b59b6',
+        teal: '#1abc9c'
+    };
+    return colors[colorName] || '#3498db';
+}
+
+// Members Management - Affichage des membres du workspace actuel
+function renderMembers() {
+    const container = document.getElementById('membersList');
+    const workspaceMembers = appData.users[currentWorkspace] || [];
+    
+    container.innerHTML = workspaceMembers.map(member => {
+        const initials = member.name.split(' ').map(n => n[0]).join('').toUpperCase();
+        return `
+            <div class="member-item">
+                <div class="member-avatar">${initials}</div>
+                <div class="member-info">
+                    <div class="member-name">${member.name}</div>
+                    <div class="member-role">${member.role}</div>
+                </div>
+                <div class="member-status ${member.status}"></div>
+            </div>
+        `;
+    }).join('');
+}
+
+function populateUserSelect() {
+    const select = document.getElementById('cardAuthor');
+    const workspaceUsers = appData.users[currentWorkspace] || [];
+    select.innerHTML = '<option value="">Non assigné</option>' + 
+        workspaceUsers.map(user => `<option value="${user.name}">${user.name}</option>`).join('');
+}
+
+// Admin Panel
+function openAdminPanel() {
+    document.getElementById('adminModal').style.display = 'block';
+    renderAdminContent();
+}
+
+function switchAdminTab(tabName) {
+    document.querySelectorAll('.config-tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelector(`[onclick="switchAdminTab('${tabName}')"]`).classList.add('active');
+    
+    document.querySelectorAll('.config-content').forEach(content => content.classList.remove('active'));
+    document.getElementById(`${tabName}-content`).classList.add('active');
+    
+    renderAdminContent();
+}
+
+function renderAdminContent() {
+    renderWorkspacesList();
+    renderUsersList();
+    renderLabelsList();
+    renderChecklistTemplatesList();
+}
+
+function renderWorkspacesList() {
+    const container = document.getElementById('workspacesList');
+    container.innerHTML = Object.keys(appData.workspaces).map(id => `
+        <div class="config-item">
+            <div class="config-item-info">
+                <div class="config-item-name">${appData.workspaces[id].name}</div>
+                <div class="config-item-desc">${appData.workspaces[id].swimlanes.length} swimlanes, ${appData.workspaces[id].columns.length} colonnes</div>
+            </div>
+            <div class="config-item-actions">
+                <button class="btn-small" onclick="editWorkspace('${id}')">✏️</button>
+                <button class="btn-small" onclick="deleteWorkspace('${id}')">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderUsersList() {
+    const container = document.getElementById('usersList');
+    const workspaceUsers = appData.users[currentWorkspace] || [];
+    
+    container.innerHTML = workspaceUsers.map(user => `
+        <div class="config-item">
+            <div class="config-item-info">
+                <div class="config-item-name">${user.name}</div>
+                <div class="config-item-desc">${user.email} - ${user.role}</div>
+            </div>
+            <div class="config-item-actions">
+                <button class="btn-small" onclick="editUser(${user.id})">✏️</button>
+                <button class="btn-small" onclick="deleteUser(${user.id})">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderLabelsList() {
+    const container = document.getElementById('labelsList');
+    const labels = appData.labels[currentWorkspace] || [];
+    
+    container.innerHTML = labels.map(label => `
+        <div class="config-item">
+            <div class="config-item-info">
+                <div class="config-item-name">
+                    <span class="card-label" style="background: ${getLabelColor(label.color)}">${label.name}</span>
+                </div>
+                <div class="config-item-desc">Couleur: ${label.color}</div>
+            </div>
+            <div class="config-item-actions">
+                <button class="btn-small" onclick="editLabel('${label.id}')">✏️</button>
+                <button class="btn-small" onclick="deleteLabel('${label.id}')">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderChecklistTemplatesList() {
+    const container = document.getElementById('checklistTemplatesList');
+    const templates = appData.checklistTemplates[currentWorkspace] || [];
+    
+    container.innerHTML = templates.map(template => `
+        <div class="config-item">
+            <div class="config-item-info">
+                <div class="config-item-name">${template.name}</div>
+                <div class="config-item-desc">${template.items.length} éléments</div>
+            </div>
+            <div class="config-item-actions">
+                <button class="btn-small" onclick="editChecklistTemplate('${template.id}')">✏️</button>
+                <button class="btn-small" onclick="deleteChecklistTemplate('${template.id}')">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Admin CRUD Operations
+function addWorkspace() {
+    const name = document.getElementById('newWorkspaceName').value.trim();
+    if (!name) return;
+    
+    const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    appData.workspaces[id] = {
+        name: `🏢 ${name}`,
+        swimlanes: [{ id: 'general', name: 'Général', emoji: '📋' }],
+        columns: [
+            { id: 'todo', name: 'À faire', emoji: '📋' },
+            { id: 'inprogress', name: 'En cours', emoji: '⚡' },
+            { id: 'review', name: 'En révision', emoji: '👀' },
+            { id: 'done', name: 'Terminé', emoji: '✅' }
+        ]
+    };
+    
+    // Initialiser les données pour ce workspace
+    appData.users[id] = [];
+    appData.labels[id] = [];
+    appData.checklistTemplates[id] = [];
+    appData.cards[id] = { 'general': { 'todo': [], 'inprogress': [], 'review': [], 'done': [] } };
+    appData.activities[id] = [];
+    
+    document.getElementById('newWorkspaceName').value = '';
+    renderWorkspacesList();
+    updateWorkspaceSelect();
+    logActivity('system', `Workspace créé: ${name}`);
+}
+
+function addUser() {
+    const name = document.getElementById('newUserName').value.trim();
+    const email = document.getElementById('newUserEmail').value.trim();
+    if (!name || !email) return;
+    
+    if (!appData.users[currentWorkspace]) appData.users[currentWorkspace] = [];
+    
+    const newUser = {
+        id: Date.now(),
+        name: name,
+        email: email,
+        role: 'Membre',
+        status: 'online'
+    };
+    
+    appData.users[currentWorkspace].push(newUser);
+    document.getElementById('newUserName').value = '';
+    document.getElementById('newUserEmail').value = '';
+    renderUsersList();
+    renderMembers();
+    populateUserSelect();
+    logActivity('system', `Utilisateur créé: ${name}`);
+}
+
+function addLabel() {
+    const name = document.getElementById('newLabelName').value.trim();
+    const color = document.getElementById('newLabelColor').value;
+    if (!name) return;
+    
+    const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
+    if (!appData.labels[currentWorkspace]) appData.labels[currentWorkspace] = [];
+    appData.labels[currentWorkspace].push({ id: id, name: name, color: color });
+    
+    document.getElementById('newLabelName').value = '';
+    renderLabelsList();
+    logActivity('system', `Label créé: ${name}`);
+}
+
+// Delete Operations
+function deleteWorkspace(id) {
+    if (Object.keys(appData.workspaces).length <= 1) {
+        alert('Vous devez conserver au moins un workspace');
+        return;
+    }
+    
+    if (confirm(`Supprimer le workspace "${appData.workspaces[id].name}" ?`)) {
+        const name = appData.workspaces[id].name;
+        delete appData.workspaces[id];
+        delete appData.users[id];
+        delete appData.labels[id];
+        delete appData.checklistTemplates[id];
+        delete appData.cards[id];
+        delete appData.activities[id];
+
+        if (currentWorkspace === id) {
+            currentWorkspace = Object.keys(appData.workspaces)[0];
+            renderSwimlanes();
+            renderMembers();
+            renderActivities();
+            updateActivityHeader();
+        }
+        
+        renderWorkspacesList();
+        updateWorkspaceSelect();
+        logActivity('system', `Workspace supprimé: ${name}`);
+    }
+}
+
+function deleteUser(userId) {
+    if (confirm('Supprimer cet utilisateur ?')) {
+        const workspaceUsers = appData.users[currentWorkspace] || [];
+        const user = workspaceUsers.find(u => u.id === userId);
+        appData.users[currentWorkspace] = workspaceUsers.filter(u => u.id !== userId);
+        renderUsersList();
+        renderMembers();
+        populateUserSelect();
+        logActivity('system', `Utilisateur supprimé: ${user?.name}`);
+    }
+}
+
+function deleteLabel(labelId) {
+    if (confirm('Supprimer ce label ?')) {
+        const workspaceLabels = appData.labels[currentWorkspace] || [];
+        const label = workspaceLabels.find(l => l.id === labelId);
+        appData.labels[currentWorkspace] = workspaceLabels.filter(l => l.id !== labelId);
+        
+        // Remove label from all cards in current workspace
+        Object.keys(appData.cards[currentWorkspace] || {}).forEach(swimlaneId => {
+            Object.keys(appData.cards[currentWorkspace][swimlaneId] || {}).forEach(columnId => {
+                appData.cards[currentWorkspace][swimlaneId][columnId].forEach(card => {
+                    if (card.labels) {
+                        card.labels = card.labels.filter(l => l !== labelId);
+                    }
+                });
+            });
+        });
+        
+        renderLabelsList();
+        renderSwimlanes();
+        logActivity('system', `Label supprimé: ${label?.name}`);
+    }
+}
+
+function deleteChecklistTemplate(templateId) {
+    if (confirm('Supprimer ce template de checklist ?')) {
+        const workspaceTemplates = appData.checklistTemplates[currentWorkspace] || [];
+        const template = workspaceTemplates.find(t => t.id === templateId);
+        appData.checklistTemplates[currentWorkspace] = workspaceTemplates.filter(t => t.id !== templateId);
+        renderChecklistTemplatesList();
+        logActivity('system', `Template supprimé: ${template?.name}`);
+    }
+}
+
+// Activity Management - Activités par workspace
+function logActivity(type, message) {
+    if (!appData.activities[currentWorkspace]) {
+        appData.activities[currentWorkspace] = [];
+    }
+    
+    appData.activities[currentWorkspace].unshift({
+        id: Date.now(),
+        type: type,
+        message: message,
+        user: currentUser.name,
+        timestamp: new Date().toISOString()
+    });
+    
+    // Limiter à 50 activités par workspace
+    if (appData.activities[currentWorkspace].length > 50) {
+        appData.activities[currentWorkspace] = appData.activities[currentWorkspace].slice(0, 50);
+    }
+    
+    renderActivities();
+}
+
+function renderActivities() {
+    const container = document.getElementById('activitiesList');
+    const workspaceActivities = appData.activities[currentWorkspace] || [];
+    const icons = { 
+        create: '➕', delete: '🗑️', move: '↔️', system: '⚙️', 
+        update: '✏️', comment: '💬', workspace: '🔄' 
+    };
+    
+    container.innerHTML = workspaceActivities.slice(0, 20).map(activity => {
+        const time = new Date(activity.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        const date = new Date(activity.timestamp).toLocaleDateString('fr-FR');
+        return `
+            <div class="activity-item">
+                <div class="activity-icon">${icons[activity.type] || '📝'}</div>
+                <div class="activity-details">
+                    <div class="activity-text">${activity.message}</div>
+                    <div class="activity-time">${activity.user} - ${date} ${time}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// UI Controls
+function toggleActivityPanel() {
+    const panel = document.getElementById('activityPanel');
+    panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+}
+
+function logout() {
+    if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        logActivity('system', 'Déconnexion utilisateur');
+        alert('Déconnexion réussie !');
+        // Here you would typically redirect to login page
+    }
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+    if (modalId === 'cardModal') {
+        document.getElementById('cardForm').reset();
+        resetFormState();
+    }
+}
+
+function resetFormState() {
+    selectedLabels = [];
+    checklistItems = [];
+    selectedColor = 'blue';
+    editingCardId = null;
+    resetColorPicker();
+}
+
+function resetColorPicker() {
+    document.querySelectorAll('.color-option').forEach(o => o.classList.remove('selected'));
+    document.querySelector('[data-color="blue"]').classList.add('selected');
+}
+
+// Utility Functions
+function getCards(swimlaneId, columnId) {
+    return appData.cards[currentWorkspace]?.[swimlaneId]?.[columnId] || [];
+}
+
+function ensureCardStructure(swimlaneId, columnId) {
+    if (!appData.cards[currentWorkspace]) appData.cards[currentWorkspace] = {};
+    if (!appData.cards[currentWorkspace][swimlaneId]) appData.cards[currentWorkspace][swimlaneId] = {};
+    if (!appData.cards[currentWorkspace][swimlaneId][columnId]) appData.cards[currentWorkspace][swimlaneId][columnId] = [];
+}
+
+function findCardById(cardId) {
+    let foundCard = null;
+    Object.keys(appData.cards[currentWorkspace] || {}).forEach(swimlaneId => {
+        Object.keys(appData.cards[currentWorkspace][swimlaneId] || {}).forEach(columnId => {
+            const card = appData.cards[currentWorkspace][swimlaneId][columnId].find(c => c.id === cardId);
+            if (card) {
+                foundCard = card;
+                // Store current location for modal
+                document.querySelector('#cardModal').dataset.swimlane = swimlaneId;
+                document.querySelector('#cardModal').dataset.column = columnId;
+            }
+        });
+    });
+    return foundCard;
+}
+
+function getSwimlaneById(swimlaneId) {
+    return appData.workspaces[currentWorkspace]?.swimlanes?.find(s => s.id === swimlaneId);
+}
+
+function getColumnById(columnId) {
+    return appData.workspaces[currentWorkspace]?.columns?.find(c => c.id === columnId);
+}
+
+function getChecklistProgress(checklist) {
+    const total = checklist.length;
+    const completed = checklist.filter(item => item.completed).length;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, percentage };
+}
+
+// Fonctions d'édition (stubs - à implémenter selon vos besoins)
+function editSwimlane(swimlaneId) {
+    const swimlane = getSwimlaneById(swimlaneId);
+    const newName = prompt('Nouveau nom de la swimlane:', swimlane?.name);
+    if (newName && newName.trim()) {
+        swimlane.name = newName.trim();
+        renderSwimlanes();
+        logActivity('system', `Swimlane modifiée: ${newName}`);
+    }
+}
+
+function deleteSwimlane(swimlaneId) {
+    if (appData.workspaces[currentWorkspace].swimlanes.length <= 1) {
+        alert('Vous devez conserver au moins une swimlane');
+        return;
+    }
+    
+    const swimlane = getSwimlaneById(swimlaneId);
+    if (confirm(`Supprimer la swimlane "${swimlane?.name}" ?`)) {
+        appData.workspaces[currentWorkspace].swimlanes = 
+            appData.workspaces[currentWorkspace].swimlanes.filter(s => s.id !== swimlaneId);
+        
+        // Supprimer aussi les cartes de cette swimlane
+        if (appData.cards[currentWorkspace][swimlaneId]) {
+            delete appData.cards[currentWorkspace][swimlaneId];
+        }
+        
+        renderSwimlanes();
+        logActivity('system', `Swimlane supprimée: ${swimlane?.name}`);
+    }
+}
+
+function editWorkspace(workspaceId) {
+    const workspace = appData.workspaces[workspaceId];
+    const newName = prompt('Nouveau nom du workspace:', workspace?.name?.replace(/^🏢\s/, ''));
+    if (newName && newName.trim()) {
+        workspace.name = `🏢 ${newName.trim()}`;
+        renderWorkspacesList();
+        updateWorkspaceSelect();
+        updateActivityHeader();
+        logActivity('system', `Workspace renommé: ${newName}`);
+    }
+}
+
+function editUser(userId) {
+    const workspaceUsers = appData.users[currentWorkspace] || [];
+    const user = workspaceUsers.find(u => u.id === userId);
+    if (!user) return;
+    
+    const newName = prompt('Nouveau nom:', user.name);
+    if (newName && newName.trim()) {
+        user.name = newName.trim();
+        renderUsersList();
+        renderMembers();
+        populateUserSelect();
+        logActivity('system', `Utilisateur modifié: ${newName}`);
+    }
+}
+
+function editLabel(labelId) {
+    const workspaceLabels = appData.labels[currentWorkspace] || [];
+    const label = workspaceLabels.find(l => l.id === labelId);
+    if (!label) return;
+    
+    const newName = prompt('Nouveau nom du label:', label.name);
+    if (newName && newName.trim()) {
+        label.name = newName.trim();
+        renderLabelsList();
+        renderSwimlanes();
+        logActivity('system', `Label modifié: ${newName}`);
+    }
+}
+
+function editChecklistTemplate(templateId) {
+    const workspaceTemplates = appData.checklistTemplates[currentWorkspace] || [];
+    const template = workspaceTemplates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    const newName = prompt('Nouveau nom du template:', template.name);
+    if (newName && newName.trim()) {
+        template.name = newName.trim();
+        renderChecklistTemplatesList();
+        logActivity('system', `Template modifié: ${newName}`);
+    }
+}
+</script>
+</body>
+</html>
