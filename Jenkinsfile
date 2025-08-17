@@ -288,20 +288,51 @@ http {
                             
                         case 'macOS':
                             sh '''
-                                # Détecter le chemin Nginx (Homebrew Intel vs Apple Silicon)
-                                if [ -f "/opt/homebrew/etc/nginx/nginx.conf" ]; then
-                                    CONFIG_PATH="/opt/homebrew/etc/nginx"
-                                elif [ -f "/usr/local/etc/nginx/nginx.conf" ]; then
-                                    CONFIG_PATH="/usr/local/etc/nginx"
-                                else
-                                    echo "Configuration Nginx non trouvée, installation requise"
+                                echo "=== Debug Configuration Nginx macOS ==="
+                                echo "AVAILABLE_PORT: ${AVAILABLE_PORT}"
+                                
+                                # Vérifier si Nginx est installé
+                                if ! command -v nginx >/dev/null 2>&1; then
+                                    echo "Erreur: Nginx n'est pas installé"
                                     exit 1
                                 fi
                                 
+                                # Détecter le chemin Nginx
+                                CONFIG_PATH=""
+                                if [ -d "/opt/homebrew/etc/nginx" ]; then
+                                    CONFIG_PATH="/opt/homebrew/etc/nginx"
+                                    echo "Chemin Homebrew Apple Silicon détecté: ${CONFIG_PATH}"
+                                elif [ -d "/usr/local/etc/nginx" ]; then
+                                    CONFIG_PATH="/usr/local/etc/nginx"
+                                    echo "Chemin Homebrew Intel détecté: ${CONFIG_PATH}"
+                                else
+                                    echo "Recherche des répertoires nginx possibles:"
+                                    find /opt /usr/local -name "nginx" -type d 2>/dev/null || true
+                                    echo "Erreur: Répertoire de configuration Nginx non trouvé"
+                                    exit 1
+                                fi
+                                
+                                # Vérifier les permissions
+                                if [ ! -w "${CONFIG_PATH}" ]; then
+                                    echo "Erreur: Pas de permission d'écriture sur ${CONFIG_PATH}"
+                                    ls -la "${CONFIG_PATH}"
+                                    exit 1
+                                fi
+                                
+                                # Sauvegarder la config existante
+                                if [ -f "${CONFIG_PATH}/nginx.conf" ]; then
+                                    cp "${CONFIG_PATH}/nginx.conf" "${CONFIG_PATH}/nginx.conf.backup.${BUILD_TIMESTAMP}"
+                                    echo "Configuration existante sauvegardée"
+                                fi
+                                
+                                # Définir le chemin de l'application
                                 USER_HOME=$(echo ~)
                                 APP_PATH="${USER_HOME}/kanban"
+                                echo "APP_PATH défini: ${APP_PATH}"
                                 
-                                cat > ${CONFIG_PATH}/nginx.conf << EOF
+                                # Créer la nouvelle configuration
+                                echo "Création de la configuration Nginx..."
+                                cat > "${CONFIG_PATH}/nginx.conf" << EOF
 events {
     worker_connections 1024;
 }
@@ -309,6 +340,9 @@ events {
 http {
     include mime.types;
     default_type application/octet-stream;
+    
+    access_log ${USER_HOME}/kanban-logs/access.log;
+    error_log ${USER_HOME}/kanban-logs/error.log;
     
     server {
         listen ${AVAILABLE_PORT};
@@ -319,10 +353,30 @@ http {
         location / {
             try_files \\$uri \\$uri/ /index.html;
         }
+        
+        # Debug
+        location = /debug {
+            return 200 "Port: ${AVAILABLE_PORT}, Root: ${APP_PATH}";
+            add_header Content-Type text/plain;
+        }
     }
 }
 EOF
-                                echo "Configuration Nginx créée dans: ${CONFIG_PATH}/nginx.conf"
+                                
+                                echo "Configuration Nginx créée"
+                                echo "Contenu du fichier de configuration:"
+                                cat "${CONFIG_PATH}/nginx.conf"
+                                
+                                # Tester la configuration
+                                echo "Test de la configuration Nginx..."
+                                nginx -t -c "${CONFIG_PATH}/nginx.conf"
+                                
+                                if [ $? -eq 0 ]; then
+                                    echo "Configuration Nginx valide"
+                                else
+                                    echo "Erreur dans la configuration Nginx"
+                                    exit 1
+                                fi
                             '''
                             break
                             
